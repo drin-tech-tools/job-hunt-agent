@@ -4,19 +4,41 @@ Deploy this monorepo as **one Vercel project** using [Vercel Services](https://v
 
 > **Hobby requirement:** the GitHub repository must be **public** for org/team Hobby deploys from a connected repo.
 
-## 1. Supabase (free project)
+> **Same Supabase project:** use the owner’s existing **rag-doc-chatbot** Supabase project so `public.user_roles` is shared across apps.
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. Open **SQL Editor** → New query → paste and run [`supabase/migrations/001_init.sql`](supabase/migrations/001_init.sql).
-3. Open **Project Settings → API Keys**.
-4. Copy:
-   - **Project URL** → `SUPABASE_URL`
-   - **Secret key** (`sb_secret_...`) → `SUPABASE_SERVICE_ROLE_KEY`  
-     (legacy `service_role` JWT also works; prefer the new secret key format)
+## 1. Supabase Auth + schema
 
-Do **not** use the publishable/`anon` key. Only the FastAPI service talks to Supabase (with the secret key).
+1. Open the existing Supabase project (rag-doc-chatbot / job-hunt-agent).
+2. **SQL Editor** → run [`supabase/migrations/001_init.sql`](supabase/migrations/001_init.sql) (if not already applied).
+3. Run [`supabase/migrations/002_auth_rbac.sql`](supabase/migrations/002_auth_rbac.sql) — creates shared `user_roles`, ownership columns, and RLS (idempotent `create table if not exists`).
+4. **Authentication → Providers → Email**: enable Email. **Disable** public sign-ups (“Allow new users to sign up” = off). Invites are admin-only via the service role.
+5. **Authentication → Multi-Factor Auth**: enable **TOTP** (App Authenticator). Enforcement is in app middleware (AAL2 required).
+6. **Authentication → URL configuration**:
+   - **Site URL** = your Vercel production domain (e.g. `https://YOUR_PROJECT.vercel.app`)
+   - **Redirect URLs** include:
+     - `https://YOUR_PROJECT.vercel.app/**`
+     - `https://YOUR_PROJECT.vercel.app/auth/set-password`
+     - `https://*.vercel.app/**` (optional, for preview deploys)
+7. **Project Settings → API Keys** — copy:
+   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_URL`
+   - **Publishable** key → `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (browser + SSR)
+   - **Secret** key (`sb_secret_...`) → `SUPABASE_SERVICE_ROLE_KEY` (API + admin invite only; never `NEXT_PUBLIC_*`)
 
-## 2. Gemini API key (free tier)
+## 2. Bootstrap the first admin
+
+Never hardcode or print passwords. The invite email lets the admin set a password, then MFA.
+
+```bash
+cd apps/api
+export SUPABASE_URL=https://xxxx.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
+export ADMIN_EMAIL=you@example.com
+uv run python scripts/bootstrap_admin.py
+```
+
+Then open the invite link → `/auth/set-password` → `/mfa/setup` (scan QR, verify TOTP) → app at AAL2.
+
+## 3. Gemini API key (free tier)
 
 1. Create an API key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 2. Set `GEMINI_API_KEY` on the Vercel project (shared across services; only `api` needs it at runtime).
@@ -27,7 +49,7 @@ Do **not** use the publishable/`anon` key. Only the FastAPI service talks to Sup
    - `gemini-3.8-flash`  
    and falls back on 404 / timeout (2.5 models are often unavailable to new users).
 
-## 3. Vercel — import the repo once
+## 4. Vercel — import the repo once
 
 In the Vercel dashboard, **Import** this GitHub repository as a **single project**. Leave the Root Directory empty (repo root). Vercel reads [`vercel.json`](vercel.json):
 
@@ -38,12 +60,13 @@ In the Vercel dashboard, **Import** this GitHub repository as a **single project
 
 ### Environment variables (Production + Preview)
 
-Set these on the **project** (not per-service URL wiring):
-
 ```
 GEMINI_API_KEY=...
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+ADMIN_EMAIL=you@example.com
 ```
 
 Optional:
@@ -59,6 +82,7 @@ AGENT_MOCK=
 
 - `API_URL` — injected automatically by the `web` → `api` service binding at **function runtime** (not builds, not middleware).
 - `NEXT_PUBLIC_API_URL` — removed; the browser calls same-origin `/api/*` BFF routes only.
+- `AUTH_BYPASS` / `NEXT_PUBLIC_AUTH_BYPASS` — **never** on Production (`VERCEL_ENV=production`). Test-only seam for Cucumber (`AUTH_BYPASS=1` + `AGENT_MOCK=1`).
 - `ALLOWED_ORIGINS` — unused in production (API is not on the public internet).
 
 ### `INTERNAL_API_TOKEN` (optional, recommended)
@@ -66,57 +90,67 @@ AGENT_MOCK=
 Defense in depth on top of network isolation:
 
 1. Generate a long random secret and set `INTERNAL_API_TOKEN` on the project.
-2. The Next.js BFF sends it as `X-Internal-Api-Token` on every upstream call.
-3. When the env is set, FastAPI rejects requests that omit or mismatch the header.
-4. When unset (local pytest / casual demos), the check is skipped.
+2. The Next.js BFF sends it as `X-Internal-Api-Token` on every upstream call **and** forwards `Authorization: Bearer <user access token>`.
+3. When the env is set, FastAPI rejects requests that omit or mismatch the internal header.
+4. FastAPI **also** requires a valid Supabase user JWT at AAL2 — the internal token alone is never enough.
 
-## 4. Smoke check
+## 5. Smoke check
 
 ```bash
-# Public surface is web only — health via BFF
-curl https://YOUR_PROJECT.vercel.app/api/health
+# Unauthenticated browser hits should redirect to /login
+# After AAL2 login:
+curl -H "Cookie: ..." https://YOUR_PROJECT.vercel.app/api/health
 
 # FastAPI must NOT be reachable publicly (no rewrite targets api)
-# Internal /docs stays available only through the binding / vercel dev.
 ```
 
-Open `https://YOUR_PROJECT.vercel.app` → Resume → Agent.
+Open `https://YOUR_PROJECT.vercel.app` → sign in → MFA → Resume → Agent.
 
-## 5. What not to do
+## 6. What not to do
 
-- Do **not** enable Vercel’s one-click Supabase integration (env names / keys differ from what the API expects).
+- Do **not** enable Vercel’s one-click Supabase integration (env names / keys differ).
 - Do **not** commit `.env` files — only `.env.example`.
 - Do **not** put `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, or `INTERNAL_API_TOKEN` in client bundles (`NEXT_PUBLIC_*`).
 - Do **not** add a top-level rewrite to `api` — that would make FastAPI public and defeat the BFF.
+- Do **not** enable public sign-ups or skip TOTP MFA.
+- Do **not** set `AUTH_BYPASS` in Production.
 
 ## Local development
 
 ### Preferred — `vercel dev` (bindings)
 
-From the repo root (requires Vercel CLI):
-
 ```bash
 vercel dev
-# or fully local without cloud auth:
-vercel dev -L
+# or: vercel dev -L
 ```
 
-This starts both services and injects `API_URL` into `web` from the binding.
-
-### Fallback — two processes (no Vercel CLI)
+### Fallback — two processes
 
 ```bash
 # Terminal 1 — API
 cd apps/api && uv sync --group dev
+# For auth’d local API without real JWTs during demos:
+# AUTH_BYPASS=1 AGENT_MOCK=1
 uv run uvicorn app.main:app --reload --port 8000
 
-# Terminal 2 — Web (BFF defaults API_URL to http://127.0.0.1:8000 in development)
+# Terminal 2 — Web
 cd apps/web
-cp .env.example .env.local   # API_URL=http://127.0.0.1:8000
+cp .env.example .env.local
 npm install && npm run dev
 ```
 
-E2E orchestration (`npm run test:e2e`) starts both with `AGENT_MOCK=1` and sets `API_URL` for the Next.js process so Cucumber/Playwright exercise the BFF end-to-end.
+E2E orchestration (`npm run test:e2e`) starts both with `AGENT_MOCK=1` + `AUTH_BYPASS=1` and a cookie-based mock-auth seam.
+
+## Owner setup checklist (exact)
+
+1. Reuse the rag-doc-chatbot Supabase project.
+2. Run SQL migrations `001_init.sql` then `002_auth_rbac.sql`.
+3. Disable public sign-ups; enable Email + TOTP MFA.
+4. Set Site URL + redirect URLs to the Vercel domain (include `/auth/set-password`).
+5. Set Vercel env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `ADMIN_EMAIL`, optional `INTERNAL_API_TOKEN`.
+6. Run `uv run python scripts/bootstrap_admin.py` with `ADMIN_EMAIL`.
+7. Accept invite → set password → enroll TOTP → use the app.
+8. Invite additional users from `/admin/users` (admin only).
 
 ## Local ↔ prod parity
 
@@ -124,7 +158,8 @@ E2E orchestration (`npm run test:e2e`) starts both with `AGENT_MOCK=1` and sets 
 | --- | --- | --- |
 | Ingress | `web` on :3000; `api` on :8000 | Only `web` public; `api` via binding |
 | `API_URL` | Binding (`vercel dev`) or `http://127.0.0.1:8000` | Service binding (auto) |
-| Supabase | Optional — in-memory if unset | Required |
+| Auth | Real Supabase or `AUTH_BYPASS`+`AGENT_MOCK` | Supabase session AAL2 only |
+| Supabase | Required for real auth; memory OK with bypass | Required |
 | Gemini | Optional — heuristic / `AGENT_MOCK` | Required for LLM planning |
 | `INTERNAL_API_TOKEN` | Optional | Recommended |
 | CORS | Harmless localhost default | Not needed |

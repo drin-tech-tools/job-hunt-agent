@@ -151,13 +151,15 @@ apps/api/
 ├── api/index.py              # Legacy ASGI re-export (optional; framework uses app/main.py)
 ├── app/
 │   ├── main.py               # FastAPI app, CORS (local-only), INTERNAL_API_TOKEN middleware
-│   ├── config.py             # pydantic-settings: Gemini, Supabase, guardrails, mock flag
+│   ├── config.py             # pydantic-settings: Gemini, Supabase, auth bypass, guardrails
+│   ├── auth/                 # JWT verify, AAL2, RBAC permission matrix + DI
 │   ├── models/schemas.py     # Request/response + tool I/O (Pydantic v2)
 │   ├── routes/
-│   │   ├── health.py         # GET /health
-│   │   ├── resumes.py        # Resume CRUD
-│   │   ├── tracker.py        # Application tracker CRUD
-│   │   └── agent.py          # POST /agent/run → SSE (sse-starlette)
+│   │   ├── health.py         # GET /health (AAL2)
+│   │   ├── resumes.py        # Resume CRUD (ownership)
+│   │   ├── tracker.py        # Application tracker CRUD (ownership)
+│   │   ├── agent.py          # POST /agent/run → SSE (sse-starlette)
+│   │   └── admin_users.py    # Invite / role / disable / reset MFA
 │   ├── agent/
 │   │   ├── loop.py           # Gemini function-calling loop + step traces
 │   │   ├── mock_runner.py    # AGENT_MOCK=1 scripted tools (Cucumber / demos)
@@ -173,20 +175,24 @@ apps/api/
 └── pyproject.toml
 
 apps/web/
-├── app/api/                  # BFF Route Handlers (allowlisted proxy)
+├── middleware.ts             # AAL2 security wall (login/mfa/set-password exceptions)
+├── app/api/                  # BFF Route Handlers (AAL2 re-check + allowlisted proxy)
 │   ├── health/route.ts
 │   ├── resumes/route.ts
 │   ├── resumes/[id]/route.ts
 │   ├── tracker/route.ts
 │   ├── tracker/[id]/route.ts
+│   ├── admin/users/          # Admin user management proxy
 │   └── agent/run/route.ts    # SSE passthrough, runtime nodejs, maxDuration 300
 ├── lib/
 │   ├── api.ts                # Browser client → same-origin /api/*
+│   ├── auth/                 # permissions.ts + session helpers + mock seam
+│   ├── supabase/             # @supabase/ssr browser + server clients
 │   └── bff/
-│       ├── api-base.ts       # getApiUrl() + internal token headers
-│       ├── proxy.ts          # JSON proxy helper
+│       ├── api-base.ts       # getApiUrl() + Bearer + internal token headers
+│       ├── proxy.ts          # JSON proxy helper (session → upstream)
 │       └── schemas.ts        # zod validators
-└── app/{page,agent,resume,tracker}/  # UI
+└── app/{login,mfa,auth,admin,page,agent,resume,tracker}/  # UI
 ```
 
 **BFF route choice:** Next.js owns `/api/*` because FastAPI is no longer public. Each handler maps 1:1 onto FastAPI (`/api/health` → `/health`, `/api/agent/run` → `/agent/run`, …). Only the endpoints the UI uses are implemented (isolation).
@@ -200,8 +206,63 @@ apps/web/
 | Allowlisted BFF | Explicit Route Handlers; no generic reverse proxy |
 | Input validation | zod on mutating BFF bodies; Pydantic on FastAPI |
 | Shared secret | Optional `INTERNAL_API_TOKEN` → `X-Internal-Api-Token` |
+| User JWT | BFF forwards `Authorization: Bearer <access_token>`; FastAPI verifies + requires AAL2 |
 | Secrets | `GEMINI_API_KEY`, Supabase secret, token are server-side only — never `NEXT_PUBLIC_*` |
 | CORS | Not required in prod (browser never calls FastAPI). Kept harmless for local `:8000` /docs |
+
+### Authentication & RBAC
+
+Invite-only Supabase Auth (same project as **rag-doc-chatbot**) with **mandatory TOTP MFA (AAL2)**. Roles live in shared `public.user_roles` for `app = 'job-hunt-agent'`.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor User
+  participant Web as web (Next.js)
+  participant MW as middleware
+  participant BFF as BFF Route Handler
+  participant API as FastAPI
+  participant SB as Supabase Auth
+
+  User->>Web: GET / (or /api/*)
+  Web->>MW: session wall
+  alt no session
+    MW-->>User: redirect /login
+  else AAL1, no TOTP factor
+    MW-->>User: redirect /mfa/setup
+  else AAL1, factor enrolled
+    MW-->>User: redirect /mfa/verify
+  else AAL2
+    MW-->>Web: allow
+  end
+
+  User->>BFF: same-origin /api/...
+  BFF->>BFF: re-check AAL2 session
+  BFF->>API: Authorization Bearer access_token<br/>+ X-Internal-Api-Token
+  API->>SB: auth.get_user(jwt) + aal claim
+  API->>API: load user_roles (job-hunt-agent)<br/>enforce permission DI
+  API-->>BFF: JSON / SSE
+  BFF-->>User: response
+```
+
+**AAL1-only paths:** `/login`, `/mfa/setup`, `/mfa/verify`, `/auth/set-password`, `/logout`. Everything else (pages + BFF `/api/*`) requires AAL2. No public signup — admins invite from `/admin/users`.
+
+**Permission matrix** (`apps/web/lib/auth/permissions.ts` ↔ `apps/api/app/auth/permissions.py`):
+
+| Permission | client | admin |
+| --- | --- | --- |
+| manage own resume | ✓ | ✓ |
+| manage any resume | | ✓ |
+| run agent | ✓ | ✓ |
+| manage own tracker / cover letters | ✓ | ✓ |
+| manage any tracker | | ✓ |
+| view own agent runs | ✓ | ✓ |
+| view any agent runs / logs | | ✓ |
+| manage users (invite, role, disable, reset MFA) | | ✓ |
+
+Ownership columns (`user_id`) on `resumes`, `tracker`, `agent_runs` (`jobs_cache` stays shared). RLS mirrors the matrix; the API uses the service role and still enforces permissions in FastAPI dependencies.
+
+**Test auth bypass:** `AUTH_BYPASS=1` only works with `AGENT_MOCK=1` and never when `VERCEL_ENV=production`. Cucumber uses cookie `jh-e2e-auth`.
 
 ### Reliability & product guardrails
 
@@ -321,7 +382,7 @@ See **[docs/TESTING.md](docs/TESTING.md)** for red-green-refactor, tags (`@smoke
 
 ## Deploy
 
-See **[DEPLOYMENT.md](DEPLOYMENT.md)** — Supabase migration, Gemini key, single Vercel Services project, optional `INTERNAL_API_TOKEN`. The GitHub repo must be **public** for Hobby org deploys from a connected repo.
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** — Supabase Auth (TOTP MFA, no public signup), migrations `001`+`002`, bootstrap admin, Gemini key, single Vercel Services project, optional `INTERNAL_API_TOKEN`. The GitHub repo must be **public** for Hobby org deploys from a connected repo.
 
 ## License
 

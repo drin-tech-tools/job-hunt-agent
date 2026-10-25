@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from app import __version__
 from app.config import get_settings
-from app.routes import agent, health, resumes, tracker
+from app.routes import admin_users, agent, health, resumes, tracker
 
 settings = get_settings()
 
@@ -43,6 +43,7 @@ app.include_router(health.router)
 app.include_router(resumes.router)
 app.include_router(tracker.router)
 app.include_router(agent.router)
+app.include_router(admin_users.router)
 
 
 @app.get("/")

@@ -16,7 +16,8 @@ const WEB_DIR = path.join(REPO_ROOT, "apps/web");
 
 const API_PORT = Number(process.env.API_PORT || 8000);
 const WEB_PORT = Number(process.env.WEB_PORT || 3000);
-const BASE_URL = process.env.BASE_URL || `http://127.0.0.1:${WEB_PORT}`;
+// Use localhost (not 127.0.0.1) so Playwright cookies / redirects share one host.
+const BASE_URL = process.env.BASE_URL || `http://localhost:${WEB_PORT}`;
 const API_URL = process.env.API_URL || `http://127.0.0.1:${API_PORT}`;
 
 const children = [];
@@ -99,6 +100,7 @@ async function main() {
         label: "api",
         env: {
           AGENT_MOCK: "1",
+          AUTH_BYPASS: "1",
           GEMINI_API_KEY: "",
           SUPABASE_URL: "",
           SUPABASE_SERVICE_ROLE_KEY: "",
@@ -112,13 +114,23 @@ async function main() {
   if (!(await portFree(WEB_PORT))) {
     console.warn(`[e2e] Port ${WEB_PORT} busy — assuming web already running`);
   } else {
-    run("npm", ["run", "dev", "--", "-p", String(WEB_PORT), "-H", "127.0.0.1"], {
+    run("npm", ["run", "dev", "--", "-p", String(WEB_PORT), "-H", "localhost"], {
       cwd: WEB_DIR,
       label: "web",
       env: {
         // Server-only BFF upstream (Route Handlers). Not NEXT_PUBLIC_*.
         API_URL,
         NODE_ENV: "development",
+        AGENT_MOCK: "1",
+        AUTH_BYPASS: "1",
+        NEXT_PUBLIC_AUTH_BYPASS: "1",
+        NEXT_PUBLIC_AGENT_MOCK: "1",
+        // Placeholder public Supabase env so modules that read them do not throw at import.
+        // Keep unset-looking hosts offline so middleware never hits a real Auth API in e2e.
+        NEXT_PUBLIC_SUPABASE_URL:
+          process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+          process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "e2e-publishable-key",
       },
     });
   }

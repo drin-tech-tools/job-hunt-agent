@@ -8,10 +8,18 @@ const links = [
   { href: "/resume", label: "Resume" },
   { href: "/agent", label: "Agent" },
   { href: "/tracker", label: "Tracker" },
+  { href: "/admin/users", label: "Users" },
 ];
+
+const AUTH_PREFIXES = ["/login", "/mfa", "/auth/set-password"];
 
 export function Nav() {
   const pathname = usePathname();
+  const hideNav = AUTH_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+
+  if (hideNav) return null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[color-mix(in_srgb,var(--bg-0)_85%,transparent)] backdrop-blur-md">
@@ -51,6 +59,13 @@ export function Nav() {
               </Link>
             );
           })}
+          <Link
+            href="/logout"
+            data-testid="logout-link"
+            className="rounded-md px-2.5 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--text)]"
+          >
+            Log out
+          </Link>
         </nav>
       </div>
     </header>

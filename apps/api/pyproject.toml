@@ -39,3 +39,5 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+# FastAPI Depends(...) in defaults is idiomatic.
+ignore = ["B008"]

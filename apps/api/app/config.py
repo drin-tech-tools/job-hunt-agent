@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     # When truthy (AGENT_MOCK=1), agent + job search use fixtures — no Gemini / live boards.
     agent_mock: bool = False
 
+    # Test-only auth bypass. NEVER enable in production. Requires AGENT_MOCK=1 as well.
+    # Separate from AGENT_MOCK so mock agent demos do not accidentally skip auth.
+    auth_bypass: bool = False
+
+    # Bootstrap / invite target (never a password). Used by scripts/bootstrap_admin.py.
+    admin_email: str = ""
+
     agent_max_steps: int = 8
     agent_overall_timeout_s: float = 90.0
     tool_timeout_s: float = 20.0
@@ -49,6 +56,13 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
+
+    @property
+    def is_production(self) -> bool:
+        """True on Vercel Production — AUTH_BYPASS must never apply there."""
+        import os
+
+        return (os.getenv("VERCEL_ENV") or "").lower() == "production"
 
     @property
     def chat_models(self) -> list[str]:

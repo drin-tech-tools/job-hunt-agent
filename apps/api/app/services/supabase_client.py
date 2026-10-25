@@ -46,12 +46,20 @@ class SupabaseService:
         return self._client is None
 
     # ---- resumes ----
-    def create_resume(self, title: str, content: str, skills: list[str]) -> dict[str, Any]:
+    def create_resume(
+        self,
+        title: str,
+        content: str,
+        skills: list[str],
+        *,
+        user_id: str | None = None,
+    ) -> dict[str, Any]:
         row = {
             "id": str(uuid.uuid4()),
             "title": title,
             "content": content,
             "skills": skills,
+            "user_id": user_id,
             "created_at": _now_iso(),
             "updated_at": _now_iso(),
         }
@@ -67,17 +75,19 @@ class SupabaseService:
             return res.data[0] if res.data else None
         return _memory["resumes"].get(resume_id)
 
-    def list_resumes(self) -> list[dict[str, Any]]:
+    def list_resumes(self, *, user_id: str | None = None) -> list[dict[str, Any]]:
+        """If ``user_id`` is set, filter to that owner; ``None`` means all (admin)."""
         if self._client:
-            res = (
-                self._client.table("resumes")
-                .select("*")
-                .order("created_at", desc=True)
-                .execute()
-            )
+            q = self._client.table("resumes").select("*")
+            if user_id is not None:
+                q = q.eq("user_id", user_id)
+            res = q.order("created_at", desc=True).execute()
             return list(res.data or [])
+        rows = list(_memory["resumes"].values())
+        if user_id is not None:
+            rows = [r for r in rows if r.get("user_id") == user_id]
         return sorted(
-            _memory["resumes"].values(),
+            rows,
             key=lambda r: r.get("created_at", ""),
             reverse=True,
         )
@@ -142,17 +152,18 @@ class SupabaseService:
         _memory["tracker"][row["id"]] = row
         return row
 
-    def list_tracker(self) -> list[dict[str, Any]]:
+    def list_tracker(self, *, user_id: str | None = None) -> list[dict[str, Any]]:
         if self._client:
-            res = (
-                self._client.table("tracker")
-                .select("*")
-                .order("updated_at", desc=True)
-                .execute()
-            )
+            q = self._client.table("tracker").select("*")
+            if user_id is not None:
+                q = q.eq("user_id", user_id)
+            res = q.order("updated_at", desc=True).execute()
             return list(res.data or [])
+        rows = list(_memory["tracker"].values())
+        if user_id is not None:
+            rows = [r for r in rows if r.get("user_id") == user_id]
         return sorted(
-            _memory["tracker"].values(),
+            rows,
             key=lambda r: r.get("updated_at", ""),
             reverse=True,
         )

@@ -8,7 +8,7 @@ import {
 } from "@cucumber/cucumber";
 import type { ITestCaseHookParameter } from "@cucumber/cucumber";
 import fs from "node:fs";
-import { CustomWorld, REPORTS_DIR, SCREENSHOTS_DIR } from "./world.ts";
+import { CustomWorld, REPORTS_DIR, SCREENSHOTS_DIR, baseUrl } from "./world.ts";
 
 setDefaultTimeout(90_000);
 
@@ -19,6 +19,12 @@ BeforeAll(async function () {
 
 Before(async function (this: CustomWorld) {
   await this.openBrowser();
+  // Default mock-auth seam: AAL2 admin so existing journeys stay green under AUTH_BYPASS.
+  // Access-control scenarios override via explicit Given steps.
+  const res = await this.page.request.get(`${baseUrl()}/api/e2e/session?as=admin`);
+  if (!res.ok()) {
+    throw new Error(`Failed to seed default e2e admin session: ${res.status()}`);
+  }
 });
 
 After(async function (this: CustomWorld, scenario: ITestCaseHookParameter) {

@@ -40,7 +40,7 @@ Scenario: Agent stops at max steps
 
 Repeat for new journeys: scenario → failing step → smallest product change → green → tidy up.
 
-## Mock mode (`AGENT_MOCK=1`)
+## Mock mode (`AGENT_MOCK=1`) + auth bypass
 
 Acceptance tests must **not** hit real Gemini or live Himalayas/Jobicy feeds by default.
 
@@ -54,6 +54,11 @@ Set `AGENT_MOCK=1` on the API. The agent then:
   - `[timeout]` — graceful timeout message
 
 Optional `@live` tag (excluded by default) can target a deployed `BASE_URL`.
+
+Auth is required at AAL2 in production. For Cucumber, the orchestrator also sets
+`AUTH_BYPASS=1` + `NEXT_PUBLIC_AUTH_BYPASS=1` (never on Vercel Production). The
+cookie / `/api/e2e/session` seam switches roles (`admin` / `client` / `anonymous`).
+See `features/access_control.feature`.
 
 ## How to run
 

@@ -101,6 +101,7 @@ class ResumeOut(BaseModel):
     title: str
     content: str
     skills: list[str] = Field(default_factory=list)
+    user_id: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -135,6 +136,7 @@ class TrackerOut(BaseModel):
     score: int | None = None
     notes: str | None = None
     cover_letter: str | None = None
+    user_id: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

@@ -80,10 +80,13 @@ def _mock_gemini_sequence(calls_then_text: list[Any]) -> MagicMock:
 
 
 @pytest.mark.asyncio
-async def test_heuristic_agent_run(httpx_mock: HTTPXMock) -> None:
+async def test_heuristic_agent_run(
+    httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AGENT_MOCK", "0")
+    get_settings.cache_clear()
     _mock_http(httpx_mock)
     reset_db_for_tests()
-    get_settings.cache_clear()
     runner = AgentRunner()
     req = AgentRunRequest(
         resume_text=RESUME_TEXT,
@@ -110,6 +113,7 @@ async def test_heuristic_agent_run(httpx_mock: HTTPXMock) -> None:
 async def test_gemini_function_calling_loop(
     httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setenv("AGENT_MOCK", "0")
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     get_settings.cache_clear()
     reset_db_for_tests()
@@ -154,11 +158,12 @@ async def test_gemini_function_calling_loop(
     assert mock_client.models.generate_content.called
 
 
-def test_agent_run_sse_endpoint(client, httpx_mock: HTTPXMock) -> None:
-    _mock_http(httpx_mock)
+def test_agent_run_sse_endpoint(client) -> None:
+    # AGENT_MOCK=1 (autouse) uses fixtures — no live board HTTP. Auth still required.
     with client.stream(
         "POST",
         "/agent/run",
+        headers={"Authorization": "Bearer mock.mock-admin.admin.aal2"},
         json={
             "resume_text": RESUME_TEXT,
             "query": "Find roles",

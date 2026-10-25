@@ -13,7 +13,13 @@ from tests.conftest import HIMALAYAS_SAMPLE, JOBICY_SAMPLE
 
 
 @pytest.mark.asyncio
-async def test_search_jobs_merges_and_dedupes(httpx_mock: HTTPXMock) -> None:
+async def test_search_jobs_merges_and_dedupes(
+    httpx_mock: HTTPXMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AGENT_MOCK", "0")
+    from app.config import get_settings
+
+    get_settings.cache_clear()
     httpx_mock.add_response(
         method="GET",
         url=re.compile(r"https://himalayas\.app/jobs/api.*"),

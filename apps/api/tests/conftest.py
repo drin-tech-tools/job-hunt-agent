@@ -16,6 +16,10 @@ def _clean_state(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("SUPABASE_URL", "")
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "")
     monkeypatch.delenv("INTERNAL_API_TOKEN", raising=False)
+    # Default test auth seam: AGENT_MOCK + AUTH_BYPASS (never production).
+    monkeypatch.setenv("AGENT_MOCK", "1")
+    monkeypatch.setenv("AUTH_BYPASS", "1")
+    monkeypatch.delenv("VERCEL_ENV", raising=False)
     get_settings.cache_clear()
     reset_db_for_tests()
     yield
@@ -28,6 +32,21 @@ def client() -> TestClient:
     from app.main import app
 
     return TestClient(app)
+
+
+@pytest.fixture
+def auth_headers_admin() -> dict[str, str]:
+    return {"Authorization": "Bearer mock.mock-admin.admin.aal2"}
+
+
+@pytest.fixture
+def auth_headers_client() -> dict[str, str]:
+    return {"Authorization": "Bearer mock.user-client-1.client.aal2"}
+
+
+@pytest.fixture
+def auth_headers_client_aal1() -> dict[str, str]:
+    return {"Authorization": "Bearer mock.user-client-1.client.aal1"}
 
 
 HIMALAYAS_SAMPLE = {

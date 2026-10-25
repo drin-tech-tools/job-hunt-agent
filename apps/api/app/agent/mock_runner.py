@@ -42,6 +42,7 @@ async def run_mock_events(
     *,
     settings: Settings,
     db: SupabaseService,
+    user_id: str | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """Yield the same SSE event shapes as AgentRunner.run_events."""
     started = time.perf_counter()
@@ -52,6 +53,7 @@ async def run_mock_events(
         {
             "query": req.query,
             "resume_id": req.resume_id,
+            "user_id": user_id,
             "status": "running",
             "steps": [],
             "result": {},

@@ -47,6 +47,9 @@ jobs:
       - name: Build
         run: npm run build
         # API_URL is a runtime binding — not required at build time.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: build-placeholder
 
   e2e:
     name: E2E (Cucumber + Playwright mock)
@@ -89,6 +92,8 @@ jobs:
         run: npm run test:e2e
         env:
           AGENT_MOCK: "1"
+          AUTH_BYPASS: "1"
+          NEXT_PUBLIC_AUTH_BYPASS: "1"
           AGENT_MAX_STEPS: "8"
           CI: "true"
 
