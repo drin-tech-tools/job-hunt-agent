@@ -173,7 +173,12 @@ class AgentRunner:
                 continue
         raise RuntimeError("All Gemini models failed: " + " | ".join(errors))
 
-    async def run_events(self, req: AgentRunRequest) -> AsyncIterator[dict[str, Any]]:
+    async def run_events(
+        self,
+        req: AgentRunRequest,
+        *,
+        user_id: str | None = None,
+    ) -> AsyncIterator[dict[str, Any]]:
         """Yield SSE-friendly event dicts: step | final | error."""
         started = time.perf_counter()
         steps: list[StepTrace] = []
@@ -192,6 +197,7 @@ class AgentRunner:
             {
                 "query": req.query,
                 "resume_id": req.resume_id,
+                "user_id": user_id,
                 "status": "running",
                 "steps": [],
                 "result": {},
@@ -210,7 +216,9 @@ class AgentRunner:
         if self.settings.agent_mock and self._client is None:
             from app.agent.mock_runner import run_mock_events
 
-            async for ev in run_mock_events(req, settings=self.settings, db=self.db):
+            async for ev in run_mock_events(
+                req, settings=self.settings, db=self.db, user_id=user_id
+            ):
                 yield ev
             return
 

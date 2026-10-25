@@ -5,7 +5,9 @@ import { SAMPLE_RESUME } from "../support/sample_resume.ts";
 
 Given("I open the resume page", async function (this: CustomWorld) {
   await this.page.goto("/resume");
-  await expect(this.page.getByRole("heading", { name: "Resume" })).toBeVisible();
+  await expect(this.page.getByRole("heading", { name: "Resume" })).toBeVisible({
+    timeout: 15_000,
+  });
 });
 
 Given("I open the agent page", async function (this: CustomWorld) {

@@ -25,3 +25,11 @@ export function internalApiHeaders(): HeadersInit {
   if (!token) return {};
   return { "X-Internal-Api-Token": token };
 }
+
+/** Forward the verified user access token to FastAPI. */
+export function userAuthHeaders(accessToken: string): HeadersInit {
+  return {
+    Authorization: `Bearer ${accessToken}`,
+    ...internalApiHeaders(),
+  };
+}

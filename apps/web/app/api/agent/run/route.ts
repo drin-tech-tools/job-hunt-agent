@@ -1,4 +1,5 @@
-import { getApiUrl, internalApiHeaders } from "@/lib/bff/api-base";
+import { AuthError, requireAal2Session } from "@/lib/auth/session";
+import { getApiUrl, userAuthHeaders } from "@/lib/bff/api-base";
 import { zodErrorResponse } from "@/lib/bff/proxy";
 import { agentRunSchema } from "@/lib/bff/schemas";
 import { ZodError } from "zod";
@@ -10,10 +11,20 @@ export const maxDuration = 300;
 /**
  * POST /api/agent/run → FastAPI POST /agent/run
  *
- * Streams the upstream SSE body through without buffering. Aborts the FastAPI
- * request when the browser disconnects (req.signal).
+ * Re-checks AAL2, then streams the upstream SSE body through without buffering.
  */
 export async function POST(req: Request) {
+  let accessToken: string;
+  try {
+    const session = await requireAal2Session();
+    accessToken = session.accessToken;
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return Response.json({ detail: err.message }, { status: err.status });
+    }
+    return Response.json({ detail: "Unauthorized" }, { status: 401 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();
@@ -33,7 +44,7 @@ export async function POST(req: Request) {
   const headers = new Headers({
     "Content-Type": "application/json",
     Accept: "text/event-stream",
-    ...internalApiHeaders(),
+    ...userAuthHeaders(accessToken),
   });
 
   let upstream: Response;
@@ -64,8 +75,6 @@ export async function POST(req: Request) {
     });
   }
 
-  // Pass the ReadableStream through — no buffering. Client abort cancels upstream
-  // via req.signal on the fetch above; also cancel the reader if the consumer stops.
   const reader = upstream.body.getReader();
   const stream = new ReadableStream<Uint8Array>({
     async pull(controller) {

@@ -1,20 +1,35 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
-import { getApiUrl, internalApiHeaders } from "./api-base";
+import { AuthError, requireAal2Session } from "@/lib/auth/session";
+import { getApiUrl, userAuthHeaders } from "./api-base";
 
-/** Proxy a JSON request to an allowlisted FastAPI path. */
+/**
+ * Proxy a JSON request to an allowlisted FastAPI path.
+ * Re-checks AAL2 session in the Route Handler, then forwards Bearer + internal token.
+ */
 export async function proxyJson(
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
+  let accessToken: string;
+  try {
+    const session = await requireAal2Session();
+    accessToken = session.accessToken;
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ detail: err.message }, { status: err.status });
+    }
+    return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
+  }
+
   const url = new URL(path, ensureTrailingSlash(getApiUrl()));
   const headers = new Headers(init.headers);
   if (!headers.has("Content-Type") && init.body) {
     headers.set("Content-Type", "application/json");
   }
-  const internal = internalApiHeaders();
-  for (const [k, v] of Object.entries(internal)) {
+  const auth = userAuthHeaders(accessToken);
+  for (const [k, v] of Object.entries(auth)) {
     headers.set(k, v);
   }
 
