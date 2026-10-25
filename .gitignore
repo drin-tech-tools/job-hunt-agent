@@ -45,5 +45,4 @@ Thumbs.db
 # Logs / misc
 *.log
 .uv/
-uv.lock
 apps/web/next-env.d.ts
