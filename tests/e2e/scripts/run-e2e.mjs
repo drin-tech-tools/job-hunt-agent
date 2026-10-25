@@ -116,13 +116,17 @@ async function main() {
       cwd: WEB_DIR,
       label: "web",
       env: {
-        NEXT_PUBLIC_API_URL: API_URL,
+        // Server-only BFF upstream (Route Handlers). Not NEXT_PUBLIC_*.
+        API_URL,
+        NODE_ENV: "development",
       },
     });
   }
 
   console.log(`[e2e] Waiting for API ${API_URL}/health …`);
   await waitForUrl(`${API_URL}/health`);
+  console.log(`[e2e] Waiting for Web BFF ${BASE_URL}/api/health …`);
+  await waitForUrl(`${BASE_URL}/api/health`);
   console.log(`[e2e] Waiting for Web ${BASE_URL} …`);
   await waitForUrl(BASE_URL);
 

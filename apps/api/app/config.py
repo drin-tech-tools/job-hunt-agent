@@ -27,7 +27,13 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_service_role_key: str = ""
 
+    # CORS is unused in production (API is internal-only behind the Next.js BFF).
+    # Kept for optional local direct browser→API access (e.g. hitting /docs on :8000).
     allowed_origins: str = "http://localhost:3000"
+
+    # Optional shared secret. When set, every request must include matching
+    # X-Internal-Api-Token (the web BFF sends it from INTERNAL_API_TOKEN).
+    internal_api_token: str = ""
 
     jsearch_api_key: str | None = None
 
