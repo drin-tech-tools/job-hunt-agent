@@ -2,11 +2,18 @@ import { type NextRequest } from "next/server";
 
 import { updateSession } from "@/lib/supabase/middleware";
 
+/**
+ * Auth wall for pages + BFF routes.
+ *
+ * Must use the Node.js runtime: Vercel Services does not support Edge Runtime
+ * output (including default Edge middleware).
+ */
 export async function middleware(request: NextRequest) {
   return updateSession(request);
 }
 
 export const config = {
+  runtime: "nodejs",
   matcher: [
     /*
      * Match all paths except static assets and Next internals.

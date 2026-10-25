@@ -45,7 +45,17 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
       - name: Build
-        run: npm run build
+        # next/font Google downloads can flake in CI (null CSS parse). Retry a few times.
+        run: |
+          for attempt in 1 2 3; do
+            if npm run build; then
+              exit 0
+            fi
+            echo "Build attempt ${attempt} failed; retrying in 5s…"
+            sleep 5
+          done
+          echo "Build failed after 3 attempts"
+          exit 1
         # API_URL is a runtime binding — not required at build time.
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co

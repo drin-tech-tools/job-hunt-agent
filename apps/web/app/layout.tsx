@@ -1,24 +1,35 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans, Sora } from "next/font/google";
+import localFont from "next/font/local";
 import { Nav } from "@/components/Nav";
 import "./globals.css";
 
-const sora = Sora({
-  subsets: ["latin"],
+/** Local fonts — avoid next/font/google network fetches that flake in CI/Vercel builds. */
+const sora = localFont({
+  src: [
+    { path: "../fonts/sora-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/sora-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/sora-latin-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "../fonts/sora-latin-700-normal.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-sora",
   display: "swap",
 });
 
-const plex = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+const plex = localFont({
+  src: [
+    { path: "../fonts/ibm-plex-sans-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/ibm-plex-sans-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/ibm-plex-sans-latin-600-normal.woff2", weight: "600", style: "normal" },
+  ],
   variable: "--font-plex",
   display: "swap",
 });
 
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
+const plexMono = localFont({
+  src: [
+    { path: "../fonts/ibm-plex-mono-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/ibm-plex-mono-latin-500-normal.woff2", weight: "500", style: "normal" },
+  ],
   variable: "--font-plex-mono",
   display: "swap",
 });

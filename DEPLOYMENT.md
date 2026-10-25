@@ -12,7 +12,7 @@ Deploy this monorepo as **one Vercel project** using [Vercel Services](https://v
 2. **SQL Editor** → run [`supabase/migrations/001_init.sql`](supabase/migrations/001_init.sql) (if not already applied).
 3. Run [`supabase/migrations/002_auth_rbac.sql`](supabase/migrations/002_auth_rbac.sql) — creates shared `user_roles`, ownership columns, and RLS (idempotent `create table if not exists`).
 4. **Authentication → Providers → Email**: enable Email. **Disable** public sign-ups (“Allow new users to sign up” = off). Invites are admin-only via the service role.
-5. **Authentication → Multi-Factor Auth**: enable **TOTP** (App Authenticator). Enforcement is in app middleware (AAL2 required).
+5. **Authentication → Multi-Factor Auth**: enable **TOTP** (App Authenticator). Enforcement is in app middleware (AAL2 required). The middleware must use `runtime: "nodejs"` — Vercel Services rejects Edge Runtime output.
 6. **Authentication → URL configuration**:
    - **Site URL** = your Vercel production domain (e.g. `https://YOUR_PROJECT.vercel.app`)
    - **Redirect URLs** include:
