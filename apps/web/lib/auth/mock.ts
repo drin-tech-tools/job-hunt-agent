@@ -2,7 +2,7 @@
  * Test-only auth seam for Cucumber / local demos.
  *
  * Enabled when AUTH_BYPASS=1 AND AGENT_MOCK=1 (API / Route Handlers), or
- * NEXT_PUBLIC_AUTH_BYPASS=1 (Edge middleware — only public env is reliably inlined).
+ * NEXT_PUBLIC_AUTH_BYPASS=1 (middleware — public env is reliably inlined).
  * Never when VERCEL_ENV=production.
  *
  * Cookie `jh-e2e-auth` values:
@@ -24,7 +24,7 @@ export type MockIdentity = {
 export function authBypassEnabled(): boolean {
   if (process.env.VERCEL_ENV === "production") return false;
 
-  // Edge middleware: NEXT_PUBLIC_* is reliably available.
+  // Middleware: NEXT_PUBLIC_* is reliably available.
   if (
     process.env.NEXT_PUBLIC_AUTH_BYPASS === "1" ||
     process.env.NEXT_PUBLIC_AUTH_BYPASS === "true"

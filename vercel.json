@@ -4,6 +4,7 @@
     "api": {
       "root": "apps/api",
       "framework": "fastapi",
+      "entrypoint": "app.main:app",
       "functions": {
         "app/main.py": {
           "maxDuration": 300

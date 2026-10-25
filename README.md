@@ -112,6 +112,7 @@ Root config — build/runtime keys live **inside** each service (not top-level):
     "api": {
       "root": "apps/api",
       "framework": "fastapi",
+      "entrypoint": "app.main:app",
       "functions": { "app/main.py": { "maxDuration": 300 } }
     },
     "web": {
@@ -175,7 +176,7 @@ apps/api/
 └── pyproject.toml
 
 apps/web/
-├── middleware.ts             # AAL2 security wall (login/mfa/set-password exceptions)
+├── middleware.ts             # AAL2 security wall (Node.js runtime — required for Vercel Services)
 ├── app/api/                  # BFF Route Handlers (AAL2 re-check + allowlisted proxy)
 │   ├── health/route.ts
 │   ├── resumes/route.ts
