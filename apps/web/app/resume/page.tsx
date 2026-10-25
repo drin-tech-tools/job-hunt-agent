@@ -92,6 +92,7 @@ export default function ResumePage() {
         <label className="block text-sm">
           <span className="text-[var(--muted)]">Title</span>
           <input
+            data-testid="resume-title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--bg-0)] px-3 py-2 outline-none focus:border-[var(--accent)]"
@@ -100,6 +101,7 @@ export default function ResumePage() {
         <label className="block text-sm">
           <span className="text-[var(--muted)]">Skills (comma-separated)</span>
           <input
+            data-testid="resume-skills"
             value={skills}
             onChange={(e) => setSkills(e.target.value)}
             className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--bg-0)] px-3 py-2 outline-none focus:border-[var(--accent)]"
@@ -108,6 +110,7 @@ export default function ResumePage() {
         <label className="block text-sm">
           <span className="text-[var(--muted)]">Resume text</span>
           <textarea
+            data-testid="resume-content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={14}
@@ -130,6 +133,7 @@ export default function ResumePage() {
           </label>
           <button
             type="button"
+            data-testid="resume-save"
             onClick={() => void save()}
             disabled={saving}
             className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#04140c] disabled:opacity-50"
@@ -140,7 +144,11 @@ export default function ResumePage() {
             Continue to agent →
           </Link>
         </div>
-        {status && <p className="text-sm text-[var(--muted)]">{status}</p>}
+        {status && (
+          <p className="text-sm text-[var(--muted)]" data-testid="resume-status">
+            {status}
+          </p>
+        )}
       </div>
 
       {resumes.length > 0 && (

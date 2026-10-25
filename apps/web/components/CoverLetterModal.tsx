@@ -24,6 +24,7 @@ export function CoverLetterModal({
       <div
         role="dialog"
         aria-modal
+        data-testid="cover-letter-modal"
         className="glass max-h-[85vh] w-full max-w-2xl overflow-auto rounded-xl p-5 shadow-2xl"
       >
         <div className="flex items-start justify-between gap-3">

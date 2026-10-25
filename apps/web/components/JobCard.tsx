@@ -48,12 +48,18 @@ export function JobCard({
           : "var(--danger)";
 
   return (
-    <article className="glass animate-fade-up rounded-xl p-4 sm:p-5">
+    <article
+      className="glass animate-fade-up rounded-xl p-4 sm:p-5"
+      data-testid="job-card"
+      data-job-id={job.id}
+      data-source={job.source}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3
             className="text-lg font-semibold tracking-tight"
             style={{ fontFamily: "var(--font-display)" }}
+            data-testid="job-title"
           >
             {job.title}
           </h3>
@@ -63,7 +69,7 @@ export function JobCard({
           </p>
         </div>
         {score != null && (
-          <div className="text-right">
+          <div className="text-right" data-testid="job-fit-score">
             <div className="text-2xl font-semibold tabular-nums" style={{ color: scoreColor }}>
               {score}
             </div>
@@ -72,7 +78,7 @@ export function JobCard({
         )}
       </div>
 
-      <p className="mt-3 text-xs text-[var(--muted)]">
+      <p className="mt-3 text-xs text-[var(--muted)]" data-testid="job-attribution">
         via <span className="text-[var(--text)]">{job.source}</span>
       </p>
 
@@ -83,7 +89,7 @@ export function JobCard({
         </p>
       ) : null}
       {fit?.gaps?.length ? (
-        <p className="mt-1 text-sm">
+        <p className="mt-1 text-sm" data-testid="job-gaps">
           <span className="text-[var(--muted)]">Gaps: </span>
           {fit.gaps.slice(0, 6).join(", ")}
         </p>
@@ -94,6 +100,7 @@ export function JobCard({
           href={job.apply_url}
           target="_blank"
           rel="noopener noreferrer"
+          data-testid="job-apply"
           className="inline-flex items-center rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[#04140c] transition hover:brightness-110"
         >
           Apply
@@ -101,6 +108,7 @@ export function JobCard({
         {cover_letter && onShowCover && (
           <button
             type="button"
+            data-testid="job-cover-letter"
             onClick={() => onShowCover(cover_letter.body, cover_letter.subject)}
             className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm text-[var(--text)] hover:bg-[var(--bg-2)]"
           >
@@ -109,6 +117,7 @@ export function JobCard({
         )}
         <button
           type="button"
+          data-testid="job-save"
           onClick={save}
           disabled={saving || saved}
           className="rounded-md border border-[var(--line)] px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--text)] disabled:opacity-50"
