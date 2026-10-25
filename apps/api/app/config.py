@@ -31,6 +31,9 @@ class Settings(BaseSettings):
 
     jsearch_api_key: str | None = None
 
+    # When truthy (AGENT_MOCK=1), agent + job search use fixtures — no Gemini / live boards.
+    agent_mock: bool = False
+
     agent_max_steps: int = 8
     agent_overall_timeout_s: float = 90.0
     tool_timeout_s: float = 20.0

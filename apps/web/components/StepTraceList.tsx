@@ -17,6 +17,8 @@ export function StepTraceList({ steps, live }: { steps: StepTrace[]; live?: bool
         <li
           key={`${s.step}-${s.tool}-${i}`}
           className="glass animate-fade-up rounded-lg p-3 sm:p-4"
+          data-testid="step-trace-item"
+          data-tool={s.tool || "response"}
         >
           <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
             <span className="rounded bg-[var(--bg-2)] px-1.5 py-0.5 font-mono text-[var(--accent)]">

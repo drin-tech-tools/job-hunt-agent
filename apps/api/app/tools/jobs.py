@@ -249,6 +249,10 @@ async def search_jobs(
     """Query Himalayas + Jobicy concurrently, merge, dedupe by URL, cache in Supabase."""
     settings = settings or get_settings()
     db = db or get_db()
+    if settings.agent_mock:
+        from app.agent.fixtures import FIXTURE_JOBS
+
+        return list(FIXTURE_JOBS)[:limit]
     cache_key = f"search:{query}:{geo}:{tag}:{limit}"
     cached = db.get_jobs_cache(cache_key, settings.jobs_cache_ttl_s)
     if cached is not None:

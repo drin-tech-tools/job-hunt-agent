@@ -1,0 +1,22 @@
+{
+  "name": "job-hunt-agent-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "NODE_OPTIONS='--import tsx' cucumber-js --config cucumber.mjs",
+    "test:smoke": "NODE_OPTIONS='--import tsx' cucumber-js --config cucumber.mjs --tags '@smoke'",
+    "test:live": "NODE_OPTIONS='--import tsx' cucumber-js --config cucumber.mjs --tags '@live'",
+    "test:install-browsers": "playwright install chromium",
+    "postinstall": "playwright install chromium || true"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^11.2.0",
+    "@playwright/test": "^1.51.0",
+    "@types/node": "^22.13.10",
+    "playwright": "^1.51.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

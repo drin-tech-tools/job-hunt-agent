@@ -96,13 +96,23 @@ export default function TrackerPage() {
       {!loading && view === "kanban" && (
         <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
           {COLUMNS.map((col) => (
-            <div key={col} className="glass min-h-40 rounded-xl p-3">
+            <div
+              key={col}
+              className="glass min-h-40 rounded-xl p-3"
+              data-testid={`tracker-column-${col}`}
+            >
               <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
                 {col} · {byStatus[col].length}
               </h2>
               <ul className="mt-3 space-y-2">
                 {byStatus[col].map((item) => (
-                  <li key={item.id} className="rounded-lg border border-[var(--line)] bg-[var(--bg-0)] p-2.5">
+                  <li
+                    key={item.id}
+                    className="rounded-lg border border-[var(--line)] bg-[var(--bg-0)] p-2.5"
+                    data-testid="tracker-card"
+                    data-job-id={item.job_id}
+                    data-status={item.status}
+                  >
                     <p className="text-sm font-medium leading-snug">{item.title}</p>
                     <p className="text-xs text-[var(--muted)]">
                       {item.company} · via {item.source}
@@ -118,6 +128,7 @@ export default function TrackerPage() {
                         Apply
                       </a>
                       <select
+                        data-testid="tracker-status"
                         className="ml-auto rounded border border-[var(--line)] bg-transparent text-[10px]"
                         value={item.status}
                         onChange={(e) => void move(item.id, e.target.value as TrackerStatus)}

@@ -1,0 +1,17 @@
+{
+  "name": "job-hunt-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI job-hunt agent monorepo — FastAPI + Next.js + Cucumber/Playwright BDD",
+  "scripts": {
+    "test:api": "cd apps/api && uv run pytest -q",
+    "test:web": "cd apps/web && npm run typecheck && npm run build",
+    "test:e2e": "node tests/e2e/scripts/run-e2e.mjs",
+    "test:e2e:smoke": "node tests/e2e/scripts/run-e2e.mjs --tags '@smoke'",
+    "test:e2e:only": "npm --prefix tests/e2e test",
+    "postinstall": "npm --prefix apps/web install && npm --prefix tests/e2e install"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

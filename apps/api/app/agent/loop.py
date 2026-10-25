@@ -206,6 +206,14 @@ class AgentRunner:
             resume_text_default=resume_text,
         )
 
+        # Full-stack mock mode for BDD / CI — fixture jobs + scripted tool sequence
+        if self.settings.agent_mock and self._client is None:
+            from app.agent.mock_runner import run_mock_events
+
+            async for ev in run_mock_events(req, settings=self.settings, db=self.db):
+                yield ev
+            return
+
         # Deterministic bootstrap when no API key (local/tests) — still exercises tools
         if not self.settings.gemini_api_key and self._client is None:
             async for ev in self._heuristic_run(

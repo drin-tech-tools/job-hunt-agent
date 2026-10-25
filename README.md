@@ -1,6 +1,7 @@
 # Job Hunt Agent
 
 [![CI](https://github.com/drin-tech-tools/job-hunt-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/drin-tech-tools/job-hunt-agent/actions/workflows/ci.yml)
+[![BDD](https://img.shields.io/badge/BDD-Cucumber%20%2B%20Playwright-23d96c.svg)](docs/TESTING.md)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](apps/api)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)](apps/web)
 [![Vercel](https://img.shields.io/badge/deploy-2×%20Vercel%20Hobby-black.svg)](DEPLOYMENT.md)
@@ -32,7 +33,8 @@ flowchart LR
 | Data | Supabase Postgres (`sb_secret_` service key) |
 | Job boards | [Himalayas](https://himalayas.app/jobs/api) + [Jobicy](https://jobicy.com/api/v2/remote-jobs) (attribution required) |
 | Deploy | Two Vercel Hobby projects from one public repo |
-| CI | GitHub Actions: ruff + pytest · tsc + next build |
+| CI | GitHub Actions: ruff + pytest · tsc + next build · Cucumber E2E (mock) |
+| Acceptance | Cucumber.js + Playwright (`tests/e2e`) with `AGENT_MOCK=1` |
 
 ## Engineering decisions
 
@@ -48,6 +50,8 @@ flowchart LR
 ```
 apps/api/          FastAPI + Vercel Python entrypoint
 apps/web/          Next.js App Router UI
+tests/e2e/         Cucumber.js + Playwright acceptance suite
+docs/TESTING.md    BDD/TDD workflow + test pyramid
 supabase/migrations/  SQL schema
 evals/             Synthetic resume/posting pairs + consistency script
 .github/workflows/ CI
@@ -84,6 +88,24 @@ npm run typecheck && npm run build
 cd apps/api && uv sync --group dev
 uv run python ../../evals/measure_consistency.py
 ```
+
+## Testing (BDD/TDD)
+
+Acceptance tests are **Cucumber.js + Playwright** (Gherkin journeys). Pytest remains the unit/API layer of the pyramid. By default E2E runs with **`AGENT_MOCK=1`** so Gemini and live job boards are never required.
+
+```bash
+# Unit + API
+cd apps/api && uv sync --group dev && uv run pytest -q
+
+# Web
+cd apps/web && npm ci && npm run typecheck && npm run build
+
+# Full acceptance (starts API + web in mock mode, then Cucumber)
+cd tests/e2e && npm ci
+cd ../.. && npm run test:e2e
+```
+
+See **[docs/TESTING.md](docs/TESTING.md)** for red-green-refactor, tags (`@smoke`, `@agent`, `@tracker`, `@live`), and HTML/JSON reports under `tests/e2e/reports/`.
 
 ## Deploy
 

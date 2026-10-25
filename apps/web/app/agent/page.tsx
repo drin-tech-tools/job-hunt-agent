@@ -17,6 +17,8 @@ export default function AgentPage() {
   const [query, setQuery] = useState(
     "Find remote AI/ML engineering roles that match my resume and score the top fits.",
   );
+  const [role, setRole] = useState("AI engineer");
+  const [location, setLocation] = useState("philippines");
   const [resumeText, setResumeText] = useState("");
   const [resumeId, setResumeId] = useState<string | undefined>();
   const [running, setRunning] = useState(false);
@@ -53,15 +55,23 @@ export default function AgentPage() {
     setMessage(null);
     setModelUsed(null);
 
+    const tags = role
+      .split(/[\s,/]+/)
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    const goal =
+      query.trim() ||
+      `Find remote ${role} roles in ${location} that match my resume and score the top fits.`;
+
     try {
       await runAgentStream(
         {
           resume_text: resumeText,
           resume_id: resumeId,
-          query,
+          query: goal,
           max_jobs: 8,
-          location: "philippines",
-          tags: ["ai", "python", "machine-learning"],
+          location: location || "philippines",
+          tags: tags.length ? tags : ["ai", "python", "machine-learning"],
         },
         (ev) => {
           if (ev.event === "step") {
@@ -80,7 +90,14 @@ export default function AgentPage() {
       );
     } catch (err) {
       if ((err as Error).name !== "AbortError") {
-        setMessage(err instanceof Error ? err.message : "Run failed");
+        const msg = err instanceof Error ? err.message : "Run failed";
+        if (/timeout|aborted|network/i.test(msg)) {
+          setMessage(
+            "API request timed out or failed. Please try again — the agent stopped gracefully.",
+          );
+        } else {
+          setMessage(msg);
+        }
       }
     } finally {
       setRunning(false);
@@ -99,10 +116,31 @@ export default function AgentPage() {
         </p>
       </div>
 
-      <div className="glass space-y-3 rounded-xl p-4 sm:p-5">
+      <div className="glass space-y-3 rounded-xl p-4 sm:p-5" data-testid="agent-form">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm">
+            <span className="text-[var(--muted)]">Role</span>
+            <input
+              data-testid="agent-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--bg-0)] px-3 py-2 outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-[var(--muted)]">Location</span>
+            <input
+              data-testid="agent-location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--bg-0)] px-3 py-2 outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+        </div>
         <label className="block text-sm">
           <span className="text-[var(--muted)]">Goal</span>
           <textarea
+            data-testid="agent-goal"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             rows={2}
@@ -112,6 +150,7 @@ export default function AgentPage() {
         <label className="block text-sm">
           <span className="text-[var(--muted)]">Resume (used for this run)</span>
           <textarea
+            data-testid="agent-resume"
             value={resumeText}
             onChange={(e) => setResumeText(e.target.value)}
             rows={5}
@@ -121,6 +160,7 @@ export default function AgentPage() {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
+            data-testid="agent-run"
             onClick={() => void run()}
             disabled={running}
             className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#04140c] disabled:opacity-50"
@@ -130,6 +170,7 @@ export default function AgentPage() {
           {running && (
             <button
               type="button"
+              data-testid="agent-stop"
               onClick={() => abortRef.current?.abort()}
               className="rounded-md border border-[var(--line)] px-3 py-2 text-sm text-[var(--muted)]"
             >
@@ -137,20 +178,24 @@ export default function AgentPage() {
             </button>
           )}
         </div>
-        {message && <p className="text-sm text-[var(--muted)]">{message}</p>}
+        {message && (
+          <p className="text-sm text-[var(--muted)]" data-testid="agent-message">
+            {message}
+          </p>
+        )}
         {modelUsed && (
           <p className="font-mono text-xs text-[var(--muted)]">model: {modelUsed}</p>
         )}
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <section>
+        <section data-testid="step-trace">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">
             Step trace
           </h2>
           <StepTraceList steps={steps} live={running} />
         </section>
-        <section>
+        <section data-testid="job-results">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">
             Jobs
           </h2>

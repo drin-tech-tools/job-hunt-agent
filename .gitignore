@@ -46,3 +46,9 @@ Thumbs.db
 *.log
 .uv/
 apps/web/next-env.d.ts
+
+# E2E / Cucumber
+tests/e2e/reports/
+tests/e2e/node_modules/
+tests/e2e/dist/
+.playwright/
