@@ -1,0 +1,152 @@
+[
+  {
+    "id": "syn-01",
+    "label": "SYNTHETIC — clearly labeled eval fixture",
+    "resume": "Alex Rivera\nAI Engineer\nSkills: Python, FastAPI, PyTorch, RAG, LangChain, Docker, Kubernetes, Postgres, TypeScript\nBuilt production RAG chatbots and agent workflows.",
+    "job": {
+      "id": "syn-job-01",
+      "title": "Senior AI Engineer",
+      "company": "Synthetic Labs",
+      "apply_url": "https://example.com/jobs/syn-01",
+      "source": "Himalayas",
+      "description": "Build LLM agents with Python, FastAPI, RAG, LangChain, Docker, Kubernetes.",
+      "tags": ["Python", "AI", "LLM"]
+    },
+    "expected_score_min": 70
+  },
+  {
+    "id": "syn-02",
+    "label": "SYNTHETIC — clearly labeled eval fixture",
+    "resume": "Alex Rivera\nAI Engineer\nSkills: Python, FastAPI, PyTorch, RAG, Docker\n",
+    "job": {
+      "id": "syn-job-02",
+      "title": "Frontend React Engineer",
+      "company": "Pixel Co",
+      "apply_url": "https://example.com/jobs/syn-02",
+      "source": "Jobicy",
+      "description": "React, CSS, Figma, accessibility, design systems. No backend.",
+      "tags": ["React", "CSS", "Design"]
+    },
+    "expected_score_max": 45
+  },
+  {
+    "id": "syn-03",
+    "label": "SYNTHETIC — clearly labeled eval fixture",
+    "resume": "Sam Chen\nML Platform Engineer\nSkills: Python, Spark, Airflow, dbt, Snowflake, AWS, Terraform, Kubernetes\n",
+    "job": {
+      "id": "syn-job-03",
+      "title": "ML Platform Engineer",
+      "company": "Datafoundry",
+      "apply_url": "https://example.com/jobs/syn-03",
+      "source": "Himalayas",
+      "description": "Own feature pipelines on Spark, Airflow, Snowflake; infra on AWS + Terraform + k8s.",
+      "tags": ["Spark", "Airflow", "AWS"]
+    },
+    "expected_score_min": 70
+  },
+  {
+    "id": "syn-04",
+    "label": "SYNTHETIC — clearly labeled eval fixture",
+    "resume": "Sam Chen\nML Platform Engineer\nSkills: Python, Spark, Airflow, Snowflake\n",
+    "job": {
+      "id": "syn-job-04",
+      "title": "iOS Engineer",
+      "company": "MobileFirst",
+      "apply_url": "https://example.com/jobs/syn-04",
+      "source": "Jobicy",
+      "description": "Swift, SwiftUI, Combine, App Store releases.",
+      "tags": ["Swift", "iOS"]
+    },
+    "expected_score_max": 40
+  },
+  {
+    "id": "syn-05",
+    "label": "SYNTHETIC — clearly labeled eval fixture",
+    "resume": "Jordan Lee\nFull-stack AI\nSkills: TypeScript, Next.js, Python, FastAPI, Postgres, Redis, OpenAI, Gemini\n",
+    "job": {
+      "id": "syn-job-05",
+      "title": "Full-Stack AI Engineer",
+      "company": "Chatwright",
+      "apply_url": "https://example.com/jobs/syn-05",
+      "source": "Himalayas",
+      "description": "Next.js + FastAPI product; integrate OpenAI/Gemini; Postgres + Redis.",
+      "tags": ["TypeScript", "Next.js", "Python"]
+    },
+    "expected_score_min": 70
+  },
+  {
+    "id": "syn-06",
+    "label": "SYNTHETIC — clearly labeled eval fixture",
+    "resume": "Jordan Lee\nFull-stack AI\nSkills: TypeScript, Next.js, Python\n",
+    "job": {
+      "id": "syn-job-06",
+      "title": "Embedded Firmware Engineer",
+      "company": "Silicon Bits",
+      "apply_url": "https://example.com/jobs/syn-06",
+      "source": "Jobicy",
+      "description": "C, RTOS, SPI/I2C, hardware bring-up.",
+      "tags": ["C", "Embedded"]
+    },
+    "expected_score_max": 40
+  },
+  {
+    "id": "syn-07",
+    "label": "SYNTHETIC — clearly labeled eval fixture",
+    "resume": "Priya Nair\nNLP Researcher-Engineer\nSkills: Python, NLP, HuggingFace, Transformers, PyTorch, evals, RAG\n",
+    "job": {
+      "id": "syn-job-07",
+      "title": "NLP Engineer",
+      "company": "LinguaSynth",
+      "apply_url": "https://example.com/jobs/syn-07",
+      "source": "Himalayas",
+      "description": "Fine-tune transformers, build eval harnesses, ship RAG retrieval quality.",
+      "tags": ["NLP", "PyTorch", "HuggingFace"]
+    },
+    "expected_score_min": 70
+  },
+  {
+    "id": "syn-08",
+    "label": "SYNTHETIC — clearly labeled eval fixture",
+    "resume": "Priya Nair\nNLP Researcher-Engineer\nSkills: Python, NLP, PyTorch\n",
+    "job": {
+      "id": "syn-job-08",
+      "title": "Growth Marketing Manager",
+      "company": "FunnelUp",
+      "apply_url": "https://example.com/jobs/syn-08",
+      "source": "Jobicy",
+      "description": "SEO, paid social, lifecycle email campaigns.",
+      "tags": ["Marketing", "SEO"]
+    },
+    "expected_score_max": 35
+  },
+  {
+    "id": "syn-09",
+    "label": "SYNTHETIC — clearly labeled eval fixture",
+    "resume": "Chris Park\nMLOps\nSkills: Python, Docker, Kubernetes, MLflow, CI/CD, AWS, monitoring, FastAPI\n",
+    "job": {
+      "id": "syn-job-09",
+      "title": "MLOps Engineer",
+      "company": "ModelYard",
+      "apply_url": "https://example.com/jobs/syn-09",
+      "source": "Himalayas",
+      "description": "Productionize models on k8s, MLflow, CI/CD, observability on AWS.",
+      "tags": ["MLOps", "Kubernetes", "AWS"]
+    },
+    "expected_score_min": 70
+  },
+  {
+    "id": "syn-10",
+    "label": "SYNTHETIC — clearly labeled eval fixture",
+    "resume": "Chris Park\nMLOps\nSkills: Python, Docker, Kubernetes, AWS\n",
+    "job": {
+      "id": "syn-job-10",
+      "title": "Staff Data Scientist (Causal Inference)",
+      "company": "EconLab",
+      "apply_url": "https://example.com/jobs/syn-10",
+      "source": "Jobicy",
+      "description": "Causal inference, experiment design, R, Bayesian statistics, economics PhD preferred.",
+      "tags": ["R", "Statistics", "Causal"]
+    },
+    "expected_score_max": 55
+  }
+]
