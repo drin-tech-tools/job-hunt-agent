@@ -46,8 +46,7 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
-        env:
-          NEXT_PUBLIC_API_URL: http://localhost:8000
+        # API_URL is a runtime binding — not required at build time.
 
   e2e:
     name: E2E (Cucumber + Playwright mock)

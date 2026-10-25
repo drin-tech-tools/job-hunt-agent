@@ -1,5 +1,12 @@
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
+/**
+ * Browser client for the same-origin Next.js BFF under `/api/*`.
+ *
+ * FastAPI is internal-only (Vercel service binding). The UI never talks to it
+ * directly and never reads `NEXT_PUBLIC_API_URL` / `API_URL`.
+ */
+
+/** Same-origin BFF prefix — maps 1:1 onto FastAPI paths (e.g. `/api/health` → `/health`). */
+export const BFF_PREFIX = "/api";
 
 export type TrackerStatus = "saved" | "applied" | "interview" | "offer" | "rejected";
 export type JobSource = "Himalayas" | "Jobicy" | "JSearch";
@@ -77,7 +84,7 @@ export interface TrackerItem {
 }
 
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${BFF_PREFIX}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -96,13 +103,15 @@ export const api = {
   listResumes: () => json<Resume[]>("/resumes"),
   createResume: (body: { title: string; content: string; skills?: string[] }) =>
     json<Resume>("/resumes", { method: "POST", body: JSON.stringify(body) }),
-  deleteResume: (id: string) => json<{ ok: boolean }>(`/resumes/${id}`, { method: "DELETE" }),
+  deleteResume: (id: string) =>
+    json<{ ok: boolean }>(`/resumes/${id}`, { method: "DELETE" }),
   listTracker: () => json<TrackerItem[]>("/tracker"),
   createTracker: (body: Omit<TrackerItem, "id">) =>
     json<TrackerItem>("/tracker", { method: "POST", body: JSON.stringify(body) }),
   updateTracker: (id: string, body: Partial<TrackerItem>) =>
     json<TrackerItem>(`/tracker/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-  deleteTracker: (id: string) => json<{ ok: boolean }>(`/tracker/${id}`, { method: "DELETE" }),
+  deleteTracker: (id: string) =>
+    json<{ ok: boolean }>(`/tracker/${id}`, { method: "DELETE" }),
 };
 
 export type AgentEvent =
@@ -111,7 +120,7 @@ export type AgentEvent =
   | { event: "final"; data: AgentFinal }
   | { event: "error"; data: { message: string; run_id?: string } };
 
-/** Parse SSE from fetch streaming response. */
+/** Parse SSE from the same-origin BFF streaming response. */
 export async function runAgentStream(
   body: {
     resume_text?: string;
@@ -124,7 +133,7 @@ export async function runAgentStream(
   onEvent: (ev: AgentEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const res = await fetch(`${API_URL}/agent/run`, {
+  const res = await fetch(`${BFF_PREFIX}/agent/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
     body: JSON.stringify(body),

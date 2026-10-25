@@ -15,6 +15,7 @@ def _clean_state(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("GEMINI_API_KEY", "")
     monkeypatch.setenv("SUPABASE_URL", "")
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "")
+    monkeypatch.delenv("INTERNAL_API_TOKEN", raising=False)
     get_settings.cache_clear()
     reset_db_for_tests()
     yield
