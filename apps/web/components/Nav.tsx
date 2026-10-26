@@ -59,13 +59,14 @@ export function Nav() {
               </Link>
             );
           })}
-          <Link
+          {/* Plain anchor, not <Link>: /logout is a side-effecting route handler and must never be prefetched. */}
+          <a
             href="/logout"
             data-testid="logout-link"
             className="rounded-md px-2.5 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--text)]"
           >
             Log out
-          </Link>
+          </a>
         </nav>
       </div>
     </header>

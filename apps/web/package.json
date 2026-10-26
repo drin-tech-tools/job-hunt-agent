@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test lib/auth/email-link.test.ts lib/bff/api-base.test.ts"
+    "test": "node --import tsx --test lib/auth/email-link.test.ts lib/bff/api-base.test.ts lib/bff/prefetch.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
