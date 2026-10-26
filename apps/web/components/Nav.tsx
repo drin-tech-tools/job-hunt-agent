@@ -11,7 +11,7 @@ const links = [
   { href: "/admin/users", label: "Users" },
 ];
 
-const AUTH_PREFIXES = ["/login", "/mfa", "/auth/set-password"];
+const AUTH_PREFIXES = ["/login", "/mfa", "/auth/set-password", "/auth/callback"];
 
 export function Nav() {
   const pathname = usePathname();

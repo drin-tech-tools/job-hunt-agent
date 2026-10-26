@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     # Bootstrap / invite target (never a password). Used by scripts/bootstrap_admin.py.
     admin_email: str = ""
 
+    # Public web origin for invite/recovery redirect_to (no trailing slash).
+    # Falls back to production URL when unset.
+    site_url: str = "https://job-hunt-agent-eta.vercel.app"
+
     agent_max_steps: int = 8
     agent_overall_timeout_s: float = 90.0
     tool_timeout_s: float = 20.0

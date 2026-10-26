@@ -13,30 +13,49 @@ Deploy this monorepo as **one Vercel project** using [Vercel Services](https://v
 3. Run [`supabase/migrations/002_auth_rbac.sql`](supabase/migrations/002_auth_rbac.sql) — creates shared `user_roles`, ownership columns, and RLS (idempotent `create table if not exists`).
 4. **Authentication → Providers → Email**: enable Email. **Disable** public sign-ups (“Allow new users to sign up” = off). Invites are admin-only via the service role.
 5. **Authentication → Multi-Factor Auth**: enable **TOTP** (App Authenticator). Enforcement is in app middleware (AAL2 required). The middleware must use `runtime: "nodejs"` — Vercel Services rejects Edge Runtime output.
-6. **Authentication → URL configuration**:
-   - **Site URL** = your Vercel production domain (e.g. `https://YOUR_PROJECT.vercel.app`)
-   - **Redirect URLs** include:
-     - `https://YOUR_PROJECT.vercel.app/**`
-     - `https://YOUR_PROJECT.vercel.app/auth/set-password`
-     - `https://*.vercel.app/**` (optional, for preview deploys)
-7. **Project Settings → API Keys** — copy:
+6. **Authentication → URL configuration** (required — wrong allowlist is why invites fall back to Site URL with `#access_token=…` on `/login`):
+   - **Site URL**: `https://job-hunt-agent-eta.vercel.app`
+   - **Redirect URLs** — add all of these:
+
+     | URL | Why |
+     |---|---|
+     | `https://job-hunt-agent-eta.vercel.app/auth/callback` | PKCE / callback landing |
+     | `https://job-hunt-agent-eta.vercel.app/auth/callback?next=/auth/set-password` | Invite + recovery `redirectTo` used by bootstrap + admin invite |
+     | `https://job-hunt-agent-eta.vercel.app/**` | Safety net so Site URL fallback + hash landings still allow the app origin |
+     | `http://localhost:3000/auth/callback` | Local PKCE / callback |
+     | `http://localhost:3000/auth/callback?next=/auth/set-password` | Local invite / recovery |
+     | `http://localhost:3000/**` | Local safety net |
+
+   - After saving, re-run `uv run python scripts/bootstrap_admin.py` so a fresh invite/recovery email is issued (old links are single-use).
+7. **Email templates** (recommended): prefer `{{ .RedirectTo }}` over `{{ .SiteURL }}` for the CTA href so invite/recovery honor `redirectTo`. The app also accepts implicit-flow `#access_token` on `/login` and `/auth/callback` if a link still lands on Site URL.
+8. **Project Settings → API Keys** — copy:
    - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_URL`
    - **Publishable** key → `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (browser + SSR)
    - **Secret** key (`sb_secret_...`) → `SUPABASE_SERVICE_ROLE_KEY` (API + admin invite only; never `NEXT_PUBLIC_*`)
 
 ## 2. Bootstrap the first admin
 
-Never hardcode or print passwords. The invite email lets the admin set a password, then MFA.
+Never hardcode or print passwords. The bootstrap script **invites** `ADMIN_EMAIL` (or, if the user already exists / invite was consumed, sends a **recovery** email to the same `redirectTo`) and upserts `admin` for `job-hunt-agent`.
 
 ```bash
 cd apps/api
 export SUPABASE_URL=https://xxxx.supabase.co
 export SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
 export ADMIN_EMAIL=you@example.com
+# Optional — defaults to https://job-hunt-agent-eta.vercel.app
+# export SITE_URL=https://job-hunt-agent-eta.vercel.app
 uv run python scripts/bootstrap_admin.py
 ```
 
-Then open the invite link → `/auth/set-password` → `/mfa/setup` (scan QR, verify TOTP) → app at AAL2.
+`redirectTo` is always `${SITE_URL}/auth/callback?next=/auth/set-password`. Open the invite (or recovery) email → **/auth/set-password** → **/mfa/setup** (scan QR, verify TOTP) → app at AAL2. Re-run the script anytime to resend a recovery link for an existing admin.
+
+### Invite troubleshooting
+
+| Symptom | What to do |
+|---|---|
+| Landed on `/login#access_token=…` / cannot set password | Redirect allowlist was incomplete so Auth fell back to Site URL. Confirm Redirect URLs (table above), re-run bootstrap, open the **new** email. The app now consumes hash tokens on `/login` and routes invite/recovery to set-password. |
+| Invite email missing | Check Supabase Auth → Users and spam; confirm Site URL + Redirect URLs. |
+| Old invite link expired / already used | Re-run `bootstrap_admin.py` — it sends a **recovery** email for existing users. |
 
 ## 3. Gemini API key (free tier)
 
@@ -67,6 +86,7 @@ SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ADMIN_EMAIL=you@example.com
+SITE_URL=https://job-hunt-agent-eta.vercel.app
 ```
 
 Optional:
@@ -146,11 +166,11 @@ E2E orchestration (`npm run test:e2e`) starts both with `AGENT_MOCK=1` + `AUTH_B
 1. Reuse the rag-doc-chatbot Supabase project.
 2. Run SQL migrations `001_init.sql` then `002_auth_rbac.sql`.
 3. Disable public sign-ups; enable Email + TOTP MFA.
-4. Set Site URL + redirect URLs to the Vercel domain (include `/auth/set-password`).
-5. Set Vercel env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `ADMIN_EMAIL`, optional `INTERNAL_API_TOKEN`.
-6. Run `uv run python scripts/bootstrap_admin.py` with `ADMIN_EMAIL`.
-7. Accept invite → set password → enroll TOTP → use the app.
-8. Invite additional users from `/admin/users` (admin only).
+4. Set Site URL + Redirect URLs (exact table in section 1 — include `/auth/callback?next=/auth/set-password`).
+5. Set Vercel env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `ADMIN_EMAIL`, `SITE_URL`, optional `INTERNAL_API_TOKEN`.
+6. Run `uv run python scripts/bootstrap_admin.py` with `ADMIN_EMAIL` (sends invite or recovery).
+7. Accept invite/recovery → **/auth/set-password** → enroll TOTP → use the app.
+8. Invite additional users from `/admin/users` (admin only; same `redirectTo`).
 
 ## Local ↔ prod parity
 

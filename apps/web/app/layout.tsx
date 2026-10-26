@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { AuthUrlHandler } from "@/components/AuthUrlHandler";
 import { Nav } from "@/components/Nav";
 import "./globals.css";
 
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           } as React.CSSProperties
         }
       >
+        <AuthUrlHandler />
         <div className="min-h-screen">
           <Nav />
           <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-8 sm:px-6">{children}</main>
