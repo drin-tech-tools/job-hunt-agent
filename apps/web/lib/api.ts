@@ -95,6 +95,14 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
     const text = await res.text();
     throw new Error(text || res.statusText);
   }
+  const contentType = res.headers.get("Content-Type") || "";
+  if (!contentType.includes("application/json")) {
+    // e.g. an HTML login/error page served in place of the API response
+    throw new Error(
+      `Unexpected response from ${path} (${res.status} ${contentType || "no content type"}). ` +
+        "Your session may have expired — try signing in again.",
+    );
+  }
   return res.json() as Promise<T>;
 }
 
