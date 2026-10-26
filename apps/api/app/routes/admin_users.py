@@ -97,14 +97,24 @@ def list_users(
     return out
 
 
+def _invite_redirect_to() -> str:
+    settings = get_settings()
+    site = (settings.site_url or "https://job-hunt-agent-eta.vercel.app").rstrip("/")
+    return f"{site}/auth/callback?next=/auth/set-password"
+
+
 @router.post("/invite", response_model=UserOut)
 def invite_user(
     body: InviteRequest,
     _admin: CurrentUser = Depends(require_permission(Permission.manage_users)),
 ) -> UserOut:
     client = _admin_client()
+    redirect_to = _invite_redirect_to()
     try:
-        invited = client.auth.admin.invite_user_by_email(body.email)
+        invited = client.auth.admin.invite_user_by_email(
+            body.email,
+            options={"redirect_to": redirect_to},
+        )
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=f"Invite failed: {exc}") from exc
 

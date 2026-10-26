@@ -44,6 +44,8 @@ jobs:
         run: npm ci
       - name: Typecheck
         run: npm run typecheck
+      - name: Unit tests (email-link)
+        run: npm test
       - name: Build
         # next/font Google downloads can flake in CI (null CSS parse). Retry a few times.
         run: |

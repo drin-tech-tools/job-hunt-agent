@@ -10,6 +10,7 @@ const AAL1_PATHS = [
   "/mfa/setup",
   "/mfa/verify",
   "/auth/set-password",
+  "/auth/callback",
 ];
 
 function isAal1Path(pathname: string): boolean {

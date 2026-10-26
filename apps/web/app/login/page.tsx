@@ -1,15 +1,21 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const params = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    const raw = params.get("error");
+    if (!raw) return null;
+    if (raw === "auth_callback_failed") return "Sign-in link failed. Try again.";
+    return raw;
+  });
   const [pending, setPending] = useState(false);
 
   async function onSubmit(e: FormEvent) {
@@ -105,5 +111,25 @@ export default function LoginPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-md pt-10">
+          <h1
+            className="text-3xl font-semibold tracking-tight"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Job Hunt Agent
+          </h1>
+          <p className="mt-2 text-sm text-[var(--muted)]">Loading…</p>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
