@@ -35,6 +35,8 @@ class UserOut(BaseModel):
     role: RoleLiteral | None = None
     banned: bool = False
     factors: int = 0
+    # Present only when Supabase could not send the invite email; admin shares it manually.
+    invite_link: str | None = None
 
 
 def _admin_client():  # type: ignore[no-untyped-def]
@@ -103,6 +105,11 @@ def _invite_redirect_to() -> str:
     return f"{site}/auth/callback?next=/auth/set-password"
 
 
+def _is_email_send_failure(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    return "email" in msg and ("sending" in msg or "send " in msg or "smtp" in msg)
+
+
 @router.post("/invite", response_model=UserOut)
 def invite_user(
     body: InviteRequest,
@@ -110,15 +117,34 @@ def invite_user(
 ) -> UserOut:
     client = _admin_client()
     redirect_to = _invite_redirect_to()
+    invite_link: str | None = None
     try:
         invited = client.auth.admin.invite_user_by_email(
             body.email,
             options={"redirect_to": redirect_to},
         )
+        user = getattr(invited, "user", None) or invited
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=400, detail=f"Invite failed: {exc}") from exc
+        if not _is_email_send_failure(exc):
+            raise HTTPException(status_code=400, detail=f"Invite failed: {exc}") from exc
+        # Supabase's mailer failed (built-in SMTP only reaches team members and is
+        # rate-limited). Create the invite without emailing and hand the link to the admin.
+        logger.warning("invite email could not be sent; falling back to a manual link: %s", exc)
+        try:
+            generated = client.auth.admin.generate_link(
+                {"type": "invite", "email": body.email, "options": {"redirect_to": redirect_to}}
+            )
+        except Exception as link_exc:  # noqa: BLE001
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    f"Invite failed: {exc}. Configure custom SMTP in Supabase "
+                    "(Authentication → SMTP Settings) so invite emails can be delivered."
+                ),
+            ) from link_exc
+        user = generated.user
+        invite_link = generated.properties.action_link
 
-    user = getattr(invited, "user", None) or invited
     uid = str(getattr(user, "id", None) or (user.get("id") if isinstance(user, dict) else ""))
     if not uid:
         raise HTTPException(status_code=502, detail="Invite returned no user id")
@@ -128,7 +154,9 @@ def invite_user(
         on_conflict="user_id,app",
     ).execute()
 
-    return UserOut(id=uid, email=body.email, role=body.role, banned=False, factors=0)
+    return UserOut(
+        id=uid, email=body.email, role=body.role, banned=False, factors=0, invite_link=invite_link
+    )
 
 
 @router.patch("/{user_id}/role", response_model=UserOut)

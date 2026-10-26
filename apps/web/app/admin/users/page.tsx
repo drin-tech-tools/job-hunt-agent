@@ -8,6 +8,8 @@ type UserRow = {
   role?: "admin" | "client" | null;
   banned?: boolean;
   factors?: number;
+  /** Set when Supabase could not send the email; admin shares it manually. */
+  invite_link?: string | null;
 };
 
 export default function AdminUsersPage() {
@@ -16,6 +18,7 @@ export default function AdminUsersPage() {
   const [role, setRole] = useState<"admin" | "client">("client");
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
 
   const load = useCallback(async () => {
@@ -43,6 +46,7 @@ export default function AdminUsersPage() {
     e.preventDefault();
     setStatus(null);
     setError(null);
+    setInviteLink(null);
     const res = await fetch("/api/admin/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -53,7 +57,13 @@ export default function AdminUsersPage() {
       setError(typeof body.detail === "string" ? body.detail : "Invite failed");
       return;
     }
-    setStatus(`Invite sent to ${email}`);
+    const created: UserRow = await res.json();
+    if (created.invite_link) {
+      setStatus(`The invite email to ${email} could not be sent. Share this one-time link with them directly:`);
+      setInviteLink(created.invite_link);
+    } else {
+      setStatus(`Invite sent to ${email}`);
+    }
     setEmail("");
     await load();
   }
@@ -140,6 +150,15 @@ export default function AdminUsersPage() {
       </form>
 
       {status ? <p className="mt-3 text-sm text-emerald-400">{status}</p> : null}
+      {inviteLink ? (
+        <input
+          data-testid="invite-link"
+          readOnly
+          value={inviteLink}
+          onFocus={(e) => e.currentTarget.select()}
+          className="mt-2 block w-full rounded-md border border-[var(--line)] bg-[var(--bg-1)] px-3 py-2 text-xs"
+        />
+      ) : null}
       {error ? (
         <p className="mt-3 text-sm text-red-400" role="alert">
           {error}

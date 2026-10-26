@@ -83,3 +83,13 @@ Then(
     await expect(this.page.getByText(text)).toHaveCount(0);
   },
 );
+
+Then(
+  "the tracker API should reject me with a 401 JSON error",
+  async function (this: CustomWorld) {
+    const res = await this.page.request.get(`${baseUrl()}/api/tracker`);
+    expect(res.status()).toBe(401);
+    expect(res.headers()["content-type"] ?? "").toContain("application/json");
+    expect(await res.json()).toHaveProperty("detail");
+  },
+);

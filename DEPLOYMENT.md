@@ -55,6 +55,7 @@ uv run python scripts/bootstrap_admin.py
 |---|---|
 | Landed on `/login#access_token=…` / cannot set password | Redirect allowlist was incomplete so Auth fell back to Site URL. Confirm Redirect URLs (table above), re-run bootstrap, open the **new** email. The app now consumes hash tokens on `/login` and routes invite/recovery to set-password. |
 | Invite email missing | Check Supabase Auth → Users and spam; confirm Site URL + Redirect URLs. |
+| `Invite failed: Error sending invite email` | Supabase's built-in mailer only delivers to your project's team members and is heavily rate-limited. Set up custom SMTP (**Authentication → SMTP Settings**, e.g. Resend/Postmark) so any invitee gets the email. Until then, the Users page falls back to a one-time invite link you copy and share manually. |
 | Old invite link expired / already used | Re-run `bootstrap_admin.py` — it sends a **recovery** email for existing users. |
 
 ## 3. Gemini API key (free tier)

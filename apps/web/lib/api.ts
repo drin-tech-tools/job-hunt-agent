@@ -91,6 +91,11 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.headers || {}),
     },
   });
+  if (res.status === 401 && typeof window !== "undefined") {
+    // Session missing/expired or TOTP not verified: the auth wall decides where to send them.
+    window.location.assign("/login");
+    throw new Error("Session expired — redirecting to sign in");
+  }
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || res.statusText);
