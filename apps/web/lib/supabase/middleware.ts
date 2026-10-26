@@ -17,6 +17,13 @@ function isAal1Path(pathname: string): boolean {
   return AAL1_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+/** Carry cookies the Supabase client set on `supabaseResponse` (with their options) onto `target`. */
+function copyCookies(from: NextResponse, target: NextResponse): void {
+  from.cookies.getAll().forEach((c) => {
+    target.cookies.set(c);
+  });
+}
+
 function redirectWithCookies(
   request: NextRequest,
   supabaseResponse: NextResponse,
@@ -25,10 +32,26 @@ function redirectWithCookies(
   const url = request.nextUrl.clone();
   url.pathname = pathname;
   const redirectResponse = NextResponse.redirect(url);
-  supabaseResponse.cookies.getAll().forEach((c) => {
-    redirectResponse.cookies.set(c.name, c.value);
-  });
+  copyCookies(supabaseResponse, redirectResponse);
   return redirectResponse;
+}
+
+/**
+ * BFF calls (`/api/*`) get a 401 JSON error; a redirect would be followed by `fetch` and
+ * hand the client the HTML login page with a 200. Pages are redirected as before.
+ */
+function denyOrRedirect(
+  request: NextRequest,
+  supabaseResponse: NextResponse,
+  pathname: string,
+  detail: string,
+): NextResponse {
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    const res = NextResponse.json({ detail }, { status: 401 });
+    copyCookies(supabaseResponse, res);
+    return res;
+  }
+  return redirectWithCookies(request, supabaseResponse, pathname);
 }
 
 /**
@@ -41,13 +64,13 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
 
   // --- Mock auth seam (AUTH_BYPASS + AGENT_MOCK, never production) ---
   if (authBypassEnabled()) {
+    // The seam that sets the mock cookie must stay reachable when the cookie says "anonymous".
+    if (pathname.startsWith("/api/e2e/")) return supabaseResponse;
     const raw = request.cookies.get(E2E_AUTH_COOKIE)?.value;
     const identity = identityFromCookieValue(raw);
     if (identity === "anonymous" || identity === null) {
       if (!isAal1Path(pathname) && pathname !== "/login") {
-        const url = request.nextUrl.clone();
-        url.pathname = "/login";
-        return NextResponse.redirect(url);
+        return denyOrRedirect(request, supabaseResponse, "/login", "Unauthenticated");
       }
       return supabaseResponse;
     }
@@ -55,9 +78,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
       const dest =
         identity.aal === "aal1" && pathname !== "/mfa/setup" ? "/mfa/verify" : "/mfa/setup";
       // For mock, aal1 without factors → setup; with aal1 → verify
-      const url = request.nextUrl.clone();
-      url.pathname = dest === "/mfa/verify" ? "/mfa/verify" : "/mfa/setup";
-      return NextResponse.redirect(url);
+      return denyOrRedirect(request, supabaseResponse, dest, "AAL2 required (TOTP verified)");
     }
     if (identity.aal === "aal2" && (pathname === "/login" || pathname.startsWith("/mfa/"))) {
       const url = request.nextUrl.clone();
@@ -70,7 +91,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   if (!supabasePublicConfigured()) {
     // Misconfigured prod — fail closed except login page (shows config error).
     if (!isAal1Path(pathname)) {
-      return redirectWithCookies(request, supabaseResponse, "/login");
+      return denyOrRedirect(request, supabaseResponse, "/login", "Unauthenticated");
     }
     return supabaseResponse;
   }
@@ -101,7 +122,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
 
   if (!user) {
     if (!isAal1Path(pathname)) {
-      return redirectWithCookies(request, supabaseResponse, "/login");
+      return denyOrRedirect(request, supabaseResponse, "/login", "Unauthenticated");
     }
     return supabaseResponse;
   }
@@ -113,7 +134,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   // AAL1 + no factor enrolled → must set up MFA
   if (current === "aal1" && next === "aal1") {
     if (pathname !== "/mfa/setup" && pathname !== "/logout" && pathname !== "/auth/set-password") {
-      return redirectWithCookies(request, supabaseResponse, "/mfa/setup");
+      return denyOrRedirect(request, supabaseResponse, "/mfa/setup", "AAL2 required (TOTP verified)");
     }
     return supabaseResponse;
   }
@@ -121,7 +142,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   // AAL1 + factor enrolled → must verify TOTP
   if (current === "aal1" && next === "aal2") {
     if (pathname !== "/mfa/verify" && pathname !== "/logout" && pathname !== "/auth/set-password") {
-      return redirectWithCookies(request, supabaseResponse, "/mfa/verify");
+      return denyOrRedirect(request, supabaseResponse, "/mfa/verify", "AAL2 required (TOTP verified)");
     }
     return supabaseResponse;
   }

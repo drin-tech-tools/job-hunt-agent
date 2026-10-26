@@ -8,6 +8,10 @@ Feature: Access control (auth + RBAC)
     When I open the home page
     Then I should be on the login page
 
+  Scenario: Unauthenticated API call gets a 401 JSON error, not the login page
+    Given I am logged out
+    Then the tracker API should reject me with a 401 JSON error
+
   Scenario: Client cannot open admin users page
     Given I am authenticated as a client
     When I open the admin users page
