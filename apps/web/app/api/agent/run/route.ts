@@ -1,5 +1,5 @@
 import { AuthError, requireAal2Session } from "@/lib/auth/session";
-import { getApiUrl, userAuthHeaders } from "@/lib/bff/api-base";
+import { buildApiUrl, userAuthHeaders } from "@/lib/bff/api-base";
 import { zodErrorResponse } from "@/lib/bff/proxy";
 import { agentRunSchema } from "@/lib/bff/schemas";
 import { ZodError } from "zod";
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     return Response.json({ detail: "Invalid request" }, { status: 400 });
   }
 
-  const url = new URL("/agent/run", getApiUrl());
+  const url = buildApiUrl("/agent/run");
   const headers = new Headers({
     "Content-Type": "application/json",
     Accept: "text/event-stream",

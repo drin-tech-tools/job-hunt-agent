@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { AuthError, requireAal2Session } from "@/lib/auth/session";
-import { getApiUrl, userAuthHeaders } from "./api-base";
+import { buildApiUrl, userAuthHeaders } from "./api-base";
 
 /**
  * Proxy a JSON request to an allowlisted FastAPI path.
@@ -23,7 +23,7 @@ export async function proxyJson(
     return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
   }
 
-  const url = new URL(path, ensureTrailingSlash(getApiUrl()));
+  const url = buildApiUrl(path);
   const headers = new Headers(init.headers);
   if (!headers.has("Content-Type") && init.body) {
     headers.set("Content-Type", "application/json");
@@ -61,8 +61,4 @@ export function zodErrorResponse(err: ZodError): NextResponse {
     { detail: "Invalid request", issues: err.flatten() },
     { status: 400 },
   );
-}
-
-function ensureTrailingSlash(base: string): string {
-  return base.endsWith("/") ? base : `${base}/`;
 }

@@ -19,6 +19,16 @@ export function getApiUrl(): string {
   );
 }
 
+/**
+ * Join an API path onto the internal base URL, preserving any path prefix on the base.
+ *
+ * `new URL("/tracker", "https://host/_/api")` discards `/_/api` and hits the *web* service's
+ * own `/tracker` page (the auth wall then answers with the HTML login page).
+ */
+export function buildApiUrl(path: string, base: string = getApiUrl()): URL {
+  return new URL(path.replace(/^\/+/, ""), base.endsWith("/") ? base : `${base}/`);
+}
+
 /** Optional shared secret for defense-in-depth against the internal API. */
 export function internalApiHeaders(): HeadersInit {
   const token = process.env.INTERNAL_API_TOKEN;
